@@ -67,28 +67,6 @@ namespace Microsoft.Xna.Framework
             DisplayInformation.GetForCurrentView().DpiChanged += InputEvents_DpiChanged;
             _currentDipFactor = DisplayInformation.GetForCurrentView().LogicalDpi / 96.0f;
 
-            if (inputElement is SwapChainPanel || inputElement is SwapChainBackgroundPanel)
-            {
-                // Create a thread to precess input events.
-                var workItemHandler = new WorkItemHandler((action) =>
-                {
-                    var inputDevices = CoreInputDeviceTypes.Mouse | CoreInputDeviceTypes.Pen | CoreInputDeviceTypes.Touch;
-
-                    if (inputElement is SwapChainBackgroundPanel)
-                        _coreIndependentInputSource = ((SwapChainBackgroundPanel)inputElement).CreateCoreIndependentInputSource(inputDevices);
-                    else
-                        _coreIndependentInputSource = ((SwapChainPanel)inputElement).CreateCoreIndependentInputSource(inputDevices);
-
-                    _coreIndependentInputSource.PointerPressed += CoreWindow_PointerPressed;
-                    _coreIndependentInputSource.PointerMoved += CoreWindow_PointerMoved;
-                    _coreIndependentInputSource.PointerReleased += CoreWindow_PointerReleased;
-                    _coreIndependentInputSource.PointerWheelChanged += CoreWindow_PointerWheelChanged;
-
-                    _coreIndependentInputSource.Dispatcher.ProcessEvents(CoreProcessEventsOption.ProcessUntilQuit);
-                });
-                var inputWorker = ThreadPool.RunAsync(workItemHandler, WorkItemPriority.High, WorkItemOptions.TimeSliced);
-            }
-
             if (inputElement != null)
             {
                 // If we have an input UIElement then we bind input events
@@ -121,32 +99,28 @@ namespace Microsoft.Xna.Framework
             //Capture this pointer so we continue getting events even if it is dragged off us
             ((UIElement)sender).CapturePointer(args.Pointer);
 
-            var pointerPoint = args.GetCurrentPoint(null);
+            var pointerPoint = args.GetCurrentPoint(sender as UIElement);
             PointerPressed(pointerPoint, sender as UIElement, args.Pointer);
-            args.Handled = true;
         }
 
         private void UIElement_PointerMoved(object sender, PointerRoutedEventArgs args)
         {
-            var pointerPoint = args.GetCurrentPoint(null);
+            var pointerPoint = args.GetCurrentPoint(sender as UIElement);
             PointerMoved(pointerPoint);
-            args.Handled = true;
         }
 
         private void UIElement_PointerReleased(object sender, PointerRoutedEventArgs args)
         {
             ((UIElement)sender).ReleasePointerCapture(args.Pointer);
 
-            var pointerPoint = args.GetCurrentPoint(null);
+            var pointerPoint = args.GetCurrentPoint(sender as UIElement);
             PointerReleased(pointerPoint, sender as UIElement, args.Pointer);
-            args.Handled = true;
         }
 
         private void UIElement_PointerWheelChanged(object sender, PointerRoutedEventArgs args)
         {
-            var pointerPoint = args.GetCurrentPoint(null);
+            var pointerPoint = args.GetCurrentPoint(sender as UIElement);
             UpdateMouse(pointerPoint);
-            args.Handled = true;
         }
 
         #endregion // UIElement Events

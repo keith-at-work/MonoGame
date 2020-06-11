@@ -108,7 +108,7 @@ namespace Microsoft.Xna.Framework
             Instance = new UAPGameWindow();
         }
 
-        public void Initialize(CoreWindow coreWindow, UIElement inputElement, TouchQueue touchQueue)
+        public void Initialize(CoreWindow coreWindow, FrameworkElement inputElement, TouchQueue touchQueue)
         {
             _coreWindow = coreWindow;
             _inputEvents = new InputEvents(_coreWindow, inputElement, touchQueue);
@@ -119,14 +119,14 @@ namespace Microsoft.Xna.Framework
             _orientation = ToOrientation(_dinfo.CurrentOrientation);
             _dinfo.OrientationChanged += DisplayProperties_OrientationChanged;
 
-            _coreWindow.SizeChanged += Window_SizeChanged;
+            if (inputElement != null)
+                inputElement.SizeChanged += InputElement_SizeChanged;
+            else
+                _coreWindow.SizeChanged += Window_SizeChanged;
 
             _coreWindow.Closed += Window_Closed;
             _coreWindow.Activated += Window_FocusChanged;
             _coreWindow.Dispatcher.AcceleratorKeyActivated += Dispatcher_AcceleratorKeyActivated;
-
-            if (Windows.Foundation.Metadata.ApiInformation.IsTypePresent("Windows.Phone.UI.Input.HardwareButtons"))
-                Windows.Phone.UI.Input.HardwareButtons.BackPressed += this.HardwareButtons_BackPressed;
 
             SetViewBounds(_appView.VisibleBounds.Width, _appView.VisibleBounds.Height);
 
@@ -173,6 +173,17 @@ namespace Microsoft.Xna.Framework
             var pixelWidth = Math.Max(1, (int)Math.Round(width * _dinfo.RawPixelsPerViewPixel));
             var pixelHeight = Math.Max(1, (int)Math.Round(height * _dinfo.RawPixelsPerViewPixel));
             _viewBounds = new Rectangle(0, 0, pixelWidth, pixelHeight);
+        }
+
+        private void InputElement_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            lock (_eventLocker)
+            {
+                _isSizeChanged = true;
+                var pixelWidth = Math.Max(1, (int)Math.Round(e.NewSize.Width * _dinfo.RawPixelsPerViewPixel));
+                var pixelHeight = Math.Max(1, (int)Math.Round(e.NewSize.Height * _dinfo.RawPixelsPerViewPixel));
+                _newViewBounds = new Rectangle(0, 0, pixelWidth, pixelHeight);
+            }
         }
 
         private void Window_SizeChanged(object sender, WindowSizeChangedEventArgs args)
@@ -306,17 +317,6 @@ namespace Microsoft.Xna.Framework
             }
         }
 
-        private void HardwareButtons_BackPressed(object sender, BackPressedEventArgs e)
-        {
-            // We need to manually hide the keyboard input UI when the back button is pressed
-            if (KeyboardInput.IsVisible)
-                KeyboardInput.Cancel(null);
-            else
-                _backPressed = true;
-
-            e.Handled = true;
-        }
-
         private void UpdateBackButton()
         {
             GamePad.Back = _backPressed;
@@ -339,9 +339,6 @@ namespace Microsoft.Xna.Framework
                     _coreWindow.PointerCursor = new CoreCursor(CoreCursorType.Arrow, 0);
                 else
                     _coreWindow.PointerCursor = null;
-
-                // On UAP platform it is also necessary to set the cursor of CoreIndependentInputSource in InputEvents
-                _inputEvents.CoreCursor = _coreWindow.PointerCursor;
             });
         }
 

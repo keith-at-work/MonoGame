@@ -63,6 +63,11 @@ namespace Microsoft.Xna.Framework
                 _orientationListener.Disable();
         }
 
+        public static void ExternalActivityPaused(object sender)
+        {
+            EventHelpers.Raise(sender, Paused, EventArgs.Empty);
+        }
+
         public static event EventHandler Resumed;
         protected override void OnResume()
         {
@@ -81,7 +86,12 @@ namespace Microsoft.Xna.Framework
             }
         }
 
-		protected override void OnDestroy ()
+        public static void ExternalActivityResumed(object sender)
+        {
+            EventHelpers.Raise(sender, Resumed, EventArgs.Empty);
+        }
+
+        protected override void OnDestroy ()
 		{
             UnregisterReceiver(screenReceiver);
             ScreenReceiver.ScreenLocked = false;
